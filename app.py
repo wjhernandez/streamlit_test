@@ -1,33 +1,61 @@
-import streamlit as st
 import pandas as pd
-import numpy as np
+import scipy.stats
+import streamlit as st
 import time
+
+# Inicializamos las variables de estado
+if 'experiment_no' not in st.session_state:
+    st.session_state['experiment_no'] = 0
+
+if 'df_experiment_results' not in st.session_state:
+    st.session_state['df_experiment_results'] = pd.DataFrame(columns=['no', 'iteraciones', 'media'])
 
 st.header('Lanzar una moneda')
 
-# Deslizador para elegir cantidad de lanzamientos
-number_of_trials = st.slider('¿Número de lanzamientos?', 1, 1000, 10)
+# Gráfico inicial con valor medio 0.5
+chart = st.line_chart([0.5])
 
-# Botón para iniciar el experimento
-start_button = st.button('🎲 Ejecutar')
+def toss_coin(n):
+    trial_outcomes = scipy.stats.bernoulli.rvs(p=0.5, size=n)
 
-# Si se presiona el botón
+    mean = None
+    outcome_no = 0
+    outcome_1_count = 0
+
+    for r in trial_outcomes:
+        outcome_no += 1
+        if r == 1:
+            outcome_1_count += 1
+        mean = outcome_1_count / outcome_no
+        chart.add_rows([mean])
+        time.sleep(0.05)
+
+    return mean
+
+# Slider para seleccionar número de intentos
+number_of_trials = st.slider('¿Número de intentos?', 1, 1000, 10)
+
+# Botón para ejecutar experimento
+start_button = st.button('Ejecutar')
+
+st.write("Intentos seleccionados:", number_of_trials)
+
+
 if start_button:
-    st.write(f'🚀 Ejecutando experimento con {number_of_trials} lanzamientos...')
+    st.write(f'Experimento con {number_of_trials} intentos en curso.')
+    st.session_state['experiment_no'] += 1
+    mean = toss_coin(number_of_trials)
 
-    results = []
-    progress_bar = st.progress(0)
+    # Guardar los resultados en el DataFrame de estado
+    nuevo_resultado = pd.DataFrame(
+        data=[[st.session_state['experiment_no'], number_of_trials, mean]],
+        columns=['no', 'iteraciones', 'media']
+    )
 
-    for i in range(number_of_trials):
-        result = np.random.randint(0, 2)  # 0 = cara, 1 = sello
-        results.append(result)
-        progress_bar.progress((i + 1) / number_of_trials)
-        time.sleep(0.01)  # pausa breve para animación
+    st.session_state['df_experiment_results'] = pd.concat([
+        st.session_state['df_experiment_results'],
+        nuevo_resultado
+    ], axis=0).reset_index(drop=True)
 
-    results_df = pd.DataFrame(results, columns=['Resultado'])
-    results_df['Resultado'] = results_df['Resultado'].map({0: 'Cara', 1: 'Sello'})
-    st.write('Resultados de los lanzamientos:')
-    st.dataframe(results_df)
-
-    promedio = np.mean(results)
-    st.write(f'Porcentaje de "Sello": {promedio*100:.2f}%')
+# Mostrar tabla con resultados
+st.write(st.session_state['df_experiment_results'])

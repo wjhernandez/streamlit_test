@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Calculadora de Horas</title>
+</head>
+<body>
+  <h2>Calculadora de Horas</h2>
+
+  <label>Hora de entrada:</label>
+  <input type="time" id="entrada">
+
+  <label>Hora de salida:</label>
+  <input type="time" id="salida">
+
+  <button onclick="calcularHoras()">Calcular</button>
+
+  <pre id="resultado"></pre>
+  <script>
+  function calcularHoras() {
+    const entrada = document.getElementById('entrada').value;
+    const salida = document.getElementById('salida').value;
+
+    const datos = {
+      attendanceIn: entrada,
+      attendanceOut: salida,
+      concepts: [
+        { id: "HO", name: "HO", start: "08:00", end: "17:59" },
+        { id: "HED", name: "HED", start: "18:00", end: "20:59" },
+        { id: "HEN", name: "HEN", start: "21:00", end: "05:59" }
+      ]
+    };
+
+    fetch("https://falconcloud.co/site_srv10_ph/site/api/qserv.php/13465-770721", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(datos)
+    })
+    .then(response => response.json())
+    .then(data => {
+      const salidaTexto = Object.entries(data)
+        .map(([concepto, horas]) => `${concepto}: ${horas} horas`)
+        .join('\n');
+      document.getElementById('resultado').textContent = salidaTexto;
+    })
+    .catch(error => {
+      document.getElementById('resultado').textContent = "Error al consultar la API.";
+      console.error(error);
+    });
+  }
+  </script>
+</body>
+</html>
+
